@@ -73,6 +73,21 @@ log_csv_duration_filtered = pm4py.filtering.filter_case_performance(log_csv, min
 print("Cases filtered by time duration is: ")
 print(log_csv_duration_filtered)
 
+#Filter by attribute values
+from pm4py.algo.filtering.pandas.paths import paths_filter
+filtered_path = paths_filter.apply_performance(log_csv, provided_path = ["01_HOOFD_010","01_HOOFD_015"], parameters = {paths_filter.Parameters.ATTRIBUTE_KEY: "concept:name"})
+filtered_path = filtered_path.reset_index(drop=True)
+filtered_path['path_duration']=0
+for i in range(len(filtered_path)):
+    if i%2==1:
+        filtered_path['path_duration'][i-1] = filtered_path['time:timestamp'][i] - filtered_path['time:timestamp'][i-1]
+        filtered_path['path_duration'][i-1] = (filtered_path['path_duration'][i-1].days * 86400) + filtered_path['path_duration'][i-1].seconds
+        filtered_path['path_duration'][i] = filtered_path['path_duration'][i-1]
+filtered_path_average_duration = np.average(filtered_path['path_duration'])
+filtered_path_top_bottleneck_events = filtered_path[filtered_path['path_duration']==np.max(filtered_path['path_duration'])]
+filtered_path_top_bottleneck_cases = log_csv[log_csv['case:concept:name'].isin(filtered_path_top_bottleneck_events['case:concept:name'].unique().tolist())]
+filtered_path_top_bottleneck_case_id = filtered_path_top_bottleneck_cases['case:concept:name'].unique()
+
 #Model discovery
 from pm4py.algo.discovery.inductive import algorithm as inductive_miner
 #net, initial_marking, final_marking = inductive_miner.apply(log_xes)
